@@ -1,0 +1,58 @@
+spring:
+  jpa:
+    show-sql: 'false'
+    hibernate:
+      ddl-auto: update
+      open-in-view: 'false'
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+
+config:
+  import: optional:file:.env[.properties]
+
+datasource:
+  driver-class-name: com.mysql.cj.jdbc.Driver
+  username: ${DB_USER}
+  password: ${DB_PASS}
+  url: ${DB_URL}
+  hikari:
+    maximum-pool-size: 10
+    max-lifetime: 27000000
+    idle-timeout: 60000
+    connection-timeout: 30000
+    validation-timeout: 5000
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_EXPIRATION}
+
+  # logging
+  logging:
+    level:
+      org:
+        springframework:
+          core:
+            LocalVariableTableParameterNameDiscoverer: error
+        hibernate:
+          sql: debug
+          type.descriptor.sql: trace # ???? ? ??
+          sql.results.internal.ResultsHelper: INFO # OneToMany ?? ?? ?? ??
+      p6spy:
+
+  # p6spy log
+  decorator:
+    datasource:
+      p6spy:
+        enable-logging: false
+
+  # Swagger ?? ??
+  springdoc:
+    show-login-endpoint: true
+    swagger-ui:
+      path: /swagger-ui.html
+    api-docs:
+      path: /v1/api-docsDB_USER=root
