@@ -3,11 +3,13 @@ package com.kgu.traffic.domain.report.controller;
 import com.kgu.traffic.domain.report.dto.request.ReportApproveRequest;
 import com.kgu.traffic.domain.report.dto.response.ReportDetailResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportSimpleResponse;
+import com.kgu.traffic.domain.report.service.ReportExcelService;
 import com.kgu.traffic.domain.report.service.ReportService;
 import com.kgu.traffic.global.dto.response.ApiResponse;
 import com.kgu.traffic.global.domain.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -49,4 +51,5 @@ public class ReportController {
         reportService.processReport(id, request);
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
     }
+
 }

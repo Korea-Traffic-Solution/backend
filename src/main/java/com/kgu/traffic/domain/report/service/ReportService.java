@@ -12,6 +12,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -51,6 +53,7 @@ public class ReportService {
 
         if (request.approve()) {
             report.approve();
+            report.setApprovedAt(LocalDateTime.now());
         } else {
             report.reject();
         }
