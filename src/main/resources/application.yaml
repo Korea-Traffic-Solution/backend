@@ -1,9 +1,24 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    url: ${DB_URL}
+    hikari:
+      maximum-pool-size: 10
+      max-lifetime: 27000000
+      idle-timeout: 60000
+      connection-timeout: 30000
+      validation-timeout: 5000
+
   jpa:
-    show-sql: 'false'
+    show-sql: false
     hibernate:
       ddl-auto: update
-      open-in-view: 'false'
+      open-in-view: false
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
@@ -11,26 +26,15 @@ spring:
         highlight_sql: true
         use_sql_comments: true
 
-config:
-  import: optional:file:.env[.properties]
+  # Swagger 설정
+  springdoc:
+    show-login-endpoint: true
+    swagger-ui:
+      path: /swagger-ui.html
+    api-docs:
+      path: /v1/api-docs
 
-datasource:
-  driver-class-name: com.mysql.cj.jdbc.Driver
-  username: ${DB_USER}
-  password: ${DB_PASS}
-  url: ${DB_URL}
-  hikari:
-    maximum-pool-size: 10
-    max-lifetime: 27000000
-    idle-timeout: 60000
-    connection-timeout: 30000
-    validation-timeout: 5000
-
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expiration: ${JWT_EXPIRATION}
-
-  # logging
+  # 로그 레벨
   logging:
     level:
       org:
@@ -39,20 +43,16 @@ jwt:
             LocalVariableTableParameterNameDiscoverer: error
         hibernate:
           sql: debug
-          type.descriptor.sql: trace # ???? ? ??
-          sql.results.internal.ResultsHelper: INFO # OneToMany ?? ?? ?? ??
-      p6spy:
+          type.descriptor.sql: trace
+          sql.results.internal.ResultsHelper: INFO
+      p6spy: debug
 
-  # p6spy log
+  # P6spy 설정
   decorator:
     datasource:
       p6spy:
         enable-logging: false
 
-  # Swagger ?? ??
-  springdoc:
-    show-login-endpoint: true
-    swagger-ui:
-      path: /swagger-ui.html
-    api-docs:
-      path: /v1/api-docsDB_USER=root
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_EXPIRATION}
