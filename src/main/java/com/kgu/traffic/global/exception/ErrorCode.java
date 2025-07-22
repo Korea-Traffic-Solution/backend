@@ -55,8 +55,10 @@ public enum ErrorCode {
     // firebase
     FIREBASE_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, "Firebase 환경변수를 찾을 수 없습니다."),
     FCM_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "fcm 토큰을 찾을 수 없습니다"),
-    FCM_SEND_FAILED(HttpStatus.BAD_REQUEST, "보낼 수 없습니다");
+    FCM_SEND_FAILED(HttpStatus.BAD_REQUEST, "보낼 수 없습니다"),
 
+    //report
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "레포트를 찾을 수 없습니다");
     private final HttpStatus status;
     private final String message;
 
