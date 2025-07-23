@@ -54,11 +54,17 @@ public class Report {
         this.approvedAt = approvedAt;
     }
 
-    public void approve() {
+    public void approve(String reason, Integer fine, Admin admin) {
         this.status = ReportStatus.APPROVED;
+        this.reason = reason;
+        this.fine = fine;
+        this.approvedAt = LocalDateTime.now();
+        this.admin = admin;
     }
 
-    public void reject() {
+    public void reject(String reason, Admin admin) {
         this.status = ReportStatus.REJECTED;
+        this.reason = reason;
+        this.admin = admin;
     }
 }
