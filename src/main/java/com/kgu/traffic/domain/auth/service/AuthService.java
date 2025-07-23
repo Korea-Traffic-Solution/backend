@@ -29,7 +29,7 @@ public class AuthService {
                 .loginId(request.loginId())
                 .password(passwordEncoder.encode(request.password()))
                 .name(request.name())
-                .region(request.region())
+                .department(request.department())
                 .build();
         adminRepository.save(admin);
     }
@@ -44,6 +44,6 @@ public class AuthService {
         }
 
         String token = jwtProvider.createToken(admin.getLoginId());
-        return new LoginResponse(token, admin.getName(), admin.getRegion());
+        return new LoginResponse(token, admin.getName(), admin.getDepartment());
     }
 }

@@ -1,6 +1,7 @@
 package com.kgu.traffic.domain.report.dto.response;
 
 import com.kgu.traffic.domain.report.entity.ReportStatus;
+
 import java.time.LocalDateTime;
 
 public record ReportDetailResponse(
@@ -10,5 +11,11 @@ public record ReportDetailResponse(
         String reporterName,
         String targetName,
         ReportStatus status,
-        LocalDateTime reportedAt
+        LocalDateTime reportedAt,
+        String address,
+        String gps,
+        String reason,
+        Integer fine,
+        String brand,
+        LocalDateTime approvedAt
 ) {}
