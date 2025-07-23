@@ -35,28 +35,27 @@ public class ReportExcelService {
                 headerRow.createCell(i).setCellValue(headers[i]);
             }
 
-            List<Report> reports = reportRepository.findApprovedByBrandAndDate(brand, date);
+            List<Report> reports = (date != null)
+                    ? reportRepository.findApprovedByBrandAndDate(brand, date)
+                    : reportRepository.findApprovedByBrand(brand);
 
             for (int i = 0; i < reports.size(); i++) {
                 Report report = reports.get(i);
                 Row row = sheet.createRow(i + 1);
-
                 row.createCell(0).setCellValue(report.getId());
                 row.createCell(1).setCellValue(report.getAddress());
                 row.createCell(2).setCellValue(report.getGps());
                 row.createCell(3).setCellValue(report.getReason());
                 row.createCell(4).setCellValue(report.getFine());
                 row.createCell(5).setCellValue(report.getReportedAt().toString());
-
                 Admin admin = report.getAdmin();
                 row.createCell(6).setCellValue(admin != null ? admin.getName() : "");
                 row.createCell(7).setCellValue(admin != null ? admin.getDepartment() : "");
-
                 row.createCell(8).setCellValue(report.getBrand());
                 row.createCell(9).setCellValue(report.getApprovedAt() != null ? report.getApprovedAt().toString() : "");
             }
 
-            // 파일 설정
+            // 응답 헤더 설정
             String fileName = URLEncoder.encode("승인된_신고_목록.xlsx", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + fileName);
