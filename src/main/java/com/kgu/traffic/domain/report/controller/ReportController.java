@@ -3,6 +3,7 @@ package com.kgu.traffic.domain.report.controller;
 import com.kgu.traffic.domain.report.dto.request.ReportApproveRequest;
 import com.kgu.traffic.domain.report.dto.response.ReportDetailResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportSimpleResponse;
+import com.kgu.traffic.domain.report.dto.response.ReportStatisticsResponse;
 import com.kgu.traffic.domain.report.service.ReportExcelService;
 import com.kgu.traffic.domain.report.service.ReportService;
 import com.kgu.traffic.global.dto.response.ApiResponse;
@@ -10,6 +11,7 @@ import com.kgu.traffic.global.domain.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,14 +44,21 @@ public class ReportController {
         return new ApiResponse<>(reportService.getReportDetail(id));
     }
 
+
     @PatchMapping("/{id}")
     @Operation(summary = "신고 승인/반려 처리", description = "신고를 승인 또는 반려 처리합니다.")
     public ApiResponse<Void> processReport(
             @PathVariable Long id,
-            @RequestBody ReportApproveRequest request
+            @RequestBody @Valid ReportApproveRequest request // 필드 유효성 검사 활성화
     ) {
         reportService.processReport(id, request);
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
+    }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "신고 통계 조회", description = "전체 신고 수, 월간 신고 수, 승인/반려 수를 반환합니다.")
+    public ApiResponse<ReportStatisticsResponse> getReportStatistics() {
+        return new ApiResponse<>(reportService.getReportStatistics());
     }
 
 }

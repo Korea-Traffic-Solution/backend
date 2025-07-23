@@ -18,7 +18,7 @@ public class ReportExcelController {
     @GetMapping("/excel/download")
     public void downloadExcel(
             @RequestParam String brand,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             HttpServletResponse response
     ) {
         reportExcelService.writeApprovedReportExcel(brand, date, response);
