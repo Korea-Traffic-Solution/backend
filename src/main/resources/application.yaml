@@ -56,3 +56,8 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_EXPIRATION}
+
+  # application-firebase.yml 또는 application.yml 내 추가
+  firebase:
+    credentials:
+      path: src/main/resources/firebase/firebase-service-key.json
