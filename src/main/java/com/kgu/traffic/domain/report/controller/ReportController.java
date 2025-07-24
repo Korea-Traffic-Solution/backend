@@ -1,6 +1,7 @@
 package com.kgu.traffic.domain.report.controller;
 
 import com.kgu.traffic.domain.report.dto.request.ReportApproveRequest;
+import com.kgu.traffic.domain.report.dto.request.ReportCreateRequest;
 import com.kgu.traffic.domain.report.dto.response.ReportDetailResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportSimpleResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportStatisticsResponse;
@@ -61,4 +62,12 @@ public class ReportController {
         return new ApiResponse<>(reportService.getReportStatistics());
     }
 
+    @PostMapping
+    @Operation(summary = "신고 생성", description = "신규 신고를 생성하고 Firestore에 저장합니다.")
+    public ApiResponse<Void> createReport(
+            @RequestBody @Valid ReportCreateRequest request
+    ) {
+        reportService.createReport(request);
+        return new ApiResponse<>(SuccessCode.REQUEST_OK);
+    }
 }
