@@ -1,7 +1,10 @@
 package com.kgu.traffic.domain.report.repository;
 
 import com.kgu.traffic.domain.report.entity.Report;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -27,4 +30,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     @Query("SELECT r FROM Report r WHERE r.status = 'APPROVED' AND r.brand = :brand")
     List<Report> findApprovedByBrand(@Param("brand") String brand);
+
+    @Query("SELECT r FROM Report r WHERE r.address LIKE %:region%")
+    Page<Report> findAllByAddressContaining(@Param("region") String region, Pageable pageable);
 }
