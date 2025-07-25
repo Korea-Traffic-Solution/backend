@@ -12,13 +12,13 @@ import java.util.UUID;
 public class FirestoreServiceImpl implements FirestoreService {
 
     @Override
-    public void saveManagerToFirestore(String name, String email, String region, String position) {
+    public void saveManagerToFirestore(String name, String email, String region, String classname) {
         Firestore db = FirestoreClient.getFirestore();
         Map<String, Object> managerData = new HashMap<>();
         managerData.put("name", name);
         managerData.put("email", email);
         managerData.put("region", region);
-        managerData.put("class", position); // class → 직급
+        managerData.put("class", classname);
 
         db.collection("Manager").document(email).set(managerData);
     }

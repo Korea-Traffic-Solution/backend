@@ -42,11 +42,11 @@ public class FirestoreService {
         }
     }
 
-    public String getManagerRegion(String department) {
+    public String getManagerRegion(String region) {
         Firestore firestore = FirestoreClient.getFirestore();
         CollectionReference managers = firestore.collection("Manager");
 
-        ApiFuture<QuerySnapshot> query = managers.whereEqualTo("department", department).get();
+        ApiFuture<QuerySnapshot> query = managers.whereEqualTo("region", region).get();
 
         try {
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();
