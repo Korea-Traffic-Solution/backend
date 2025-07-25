@@ -4,5 +4,7 @@ public record SignUpRequest(
         String loginId,
         String password,
         String name,
-        String department 
+        String region,
+        String email,
+        String classname
 ) {}

@@ -32,7 +32,7 @@ public class ReportService {
     @Transactional(readOnly = true)
     public Page<ReportSimpleResponse> getReports(Pageable pageable) {
         Admin admin = getCurrentAdmin();
-        String region = firestoreService.getManagerRegion(admin.getDepartment());
+        String region = firestoreService.getManagerRegion(admin.getRegion());
 
         return reportRepository.findAllByAddressContaining(region, pageable)
                 .map(r -> new ReportSimpleResponse(
@@ -50,7 +50,7 @@ public class ReportService {
                 .orElseThrow(() -> TrafficException.from(ErrorCode.REPORT_NOT_FOUND));
 
         Admin admin = getCurrentAdmin();
-        String region = firestoreService.getManagerRegion(admin.getDepartment());
+        String region = firestoreService.getManagerRegion(admin.getRegion());
         if (!report.getAddress().contains(region)) {
             throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
         }
@@ -85,7 +85,7 @@ public class ReportService {
                 .orElseThrow(() -> TrafficException.from(ErrorCode.REPORT_NOT_FOUND));
 
         Admin admin = getCurrentAdmin();
-        String region = firestoreService.getManagerRegion(admin.getDepartment());
+        String region = firestoreService.getManagerRegion(admin.getRegion());
         if (!report.getAddress().contains(region)) {
             throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
         }
@@ -147,7 +147,7 @@ public class ReportService {
     @Transactional(readOnly = true)
     public Page<ReportSimpleResponse> getReportsByRegion(Pageable pageable) {
         Admin admin = getCurrentAdmin();
-        String region = firestoreService.getManagerRegion(admin.getDepartment());
+        String region = firestoreService.getManagerRegion(admin.getRegion());
 
         return reportRepository.findAllByAddressContaining(region, pageable)
                 .map(r -> new ReportSimpleResponse(

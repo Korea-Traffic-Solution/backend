@@ -50,7 +50,7 @@ public class ReportExcelService {
                 row.createCell(5).setCellValue(report.getReportedAt().toString());
                 Admin admin = report.getAdmin();
                 row.createCell(6).setCellValue(admin != null ? admin.getName() : "");
-                row.createCell(7).setCellValue(admin != null ? admin.getDepartment() : "");
+                row.createCell(7).setCellValue(admin != null ? admin.getRegion() : "");
                 row.createCell(8).setCellValue(report.getBrand());
                 row.createCell(9).setCellValue(report.getApprovedAt() != null ? report.getApprovedAt().toString() : "");
             }

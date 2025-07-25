@@ -1,5 +1,7 @@
 package com.kgu.traffic.domain.auth.service;
 
+import com.google.cloud.firestore.Firestore;
+import com.google.firebase.cloud.FirestoreClient;
 import com.kgu.traffic.domain.auth.dto.request.LoginRequest;
 import com.kgu.traffic.domain.auth.dto.request.SignUpRequest;
 import com.kgu.traffic.domain.auth.dto.response.LoginResponse;
@@ -10,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,9 +34,20 @@ public class AuthService {
                 .loginId(request.loginId())
                 .password(passwordEncoder.encode(request.password()))
                 .name(request.name())
-                .department(request.department())
+                .region(request.region())
+                .classname(request.classname())
+                .email(request.email())
                 .build();
         adminRepository.save(admin);
+
+        Firestore firestore = FirestoreClient.getFirestore();
+        Map<String, Object> managerData = new HashMap<>();
+        managerData.put("class", request.classname());
+        managerData.put("email", request.email());
+        managerData.put("name", request.name());
+        managerData.put("region", request.region());
+
+        firestore.collection("Manager").document(request.email()).set(managerData); // 문서 ID도 이메일로
     }
 
     @Transactional(readOnly = true)
@@ -44,6 +60,6 @@ public class AuthService {
         }
 
         String token = jwtProvider.createToken(admin.getLoginId());
-        return new LoginResponse(token, admin.getName(), admin.getDepartment());
+        return new LoginResponse(token, admin.getName(), admin.getRegion());
     }
 }

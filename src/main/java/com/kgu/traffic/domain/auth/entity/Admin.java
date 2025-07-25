@@ -16,5 +16,7 @@ public class Admin {
     private String loginId;
     private String password;
     private String name;
-    private String department;
+    private String region;
+    private String email;
+    private String classname;
 }
