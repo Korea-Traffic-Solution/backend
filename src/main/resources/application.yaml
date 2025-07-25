@@ -28,11 +28,11 @@ spring:
 
   # Swagger 설정
   springdoc:
-    show-login-endpoint: true
+    api-docs:
+      path: /v3/api-docs
     swagger-ui:
       path: /swagger-ui.html
-    api-docs:
-      path: /v1/api-docs
+      config-url: /v3/api-docs/swagger-config
 
   # 로그 레벨
   logging:
