@@ -7,7 +7,7 @@ public class TrafficException extends RuntimeException {
     private final ErrorCode errorCode;
     private String message;
 
-    private TrafficException(ErrorCode errorCode) {
+    public TrafficException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
