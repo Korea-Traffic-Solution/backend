@@ -1,5 +1,6 @@
 package com.kgu.traffic.global.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kgu.traffic.global.exception.ErrorCode;
 import com.kgu.traffic.global.exception.TrafficException;
 import com.fasterxml.jackson.annotation.JsonInclude;
