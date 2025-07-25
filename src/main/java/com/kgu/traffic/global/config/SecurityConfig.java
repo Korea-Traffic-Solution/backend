@@ -1,7 +1,7 @@
 package com.kgu.traffic.global.config;
 
-import com.kgu.traffic.domain.auth.repository.AdminRepository;
-import com.kgu.traffic.global.jwt.*;
+import com.kgu.traffic.global.jwt.JwtAuthenticationFilter;
+import com.kgu.traffic.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -18,7 +18,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
-    private final AdminRepository adminRepository;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -40,7 +39,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider, adminRepository), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
