@@ -47,7 +47,7 @@ public class AuthService {
         managerData.put("name", request.name());
         managerData.put("region", request.region());
 
-        firestore.collection("Manager").document(request.email()).set(managerData); // 문서 ID도 이메일로
+        firestore.collection("Manager").document(request.email()).set(managerData);
     }
 
     @Transactional(readOnly = true)
