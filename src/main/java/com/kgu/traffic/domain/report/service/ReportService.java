@@ -86,7 +86,10 @@ public class ReportService {
 
         Admin admin = getCurrentAdmin();
         String region = firestoreService.getManagerRegion(admin.getRegion());
-        if (!report.getAddress().contains(region)) {
+
+        String normalizedRegion = region.replaceAll("^(?:수원)?(\\p{IsHangul}{2,3})경찰서$", "$1구");
+
+        if (!report.getAddress().contains(normalizedRegion)) {
             throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -99,7 +102,6 @@ public class ReportService {
                     "location", report.getAddress(),
                     "reportContent", report.getDescription()
             ));
-
         } else {
             report.reject(request.reason(), admin);
         }
