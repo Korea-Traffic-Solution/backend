@@ -29,12 +29,39 @@ public class ReportService {
     private final AdminRepository adminRepository;
     private final FirestoreService firestoreService;
 
+    private Admin getCurrentAdmin() {
+        String loginId = SecurityContextHolder.getContext().getAuthentication().getName();
+        return adminRepository.findByLoginId(loginId)
+                .orElseThrow(() -> TrafficException.from(ErrorCode.ADMIN_NOT_FOUND));
+    }
+
+    private String normalizeRegion(String region) {
+        return region.replaceAll("^(?:수원)?(\\p{IsHangul}{2,3})경찰서$", "$1구");
+    }
+
     @Transactional(readOnly = true)
     public Page<ReportSimpleResponse> getReports(Pageable pageable) {
         Admin admin = getCurrentAdmin();
         String region = firestoreService.getManagerRegion(admin.getRegion());
+        String normalizedRegion = normalizeRegion(region);
 
-        return reportRepository.findAllByAddressContaining(region, pageable)
+        return reportRepository.findAllByAddressContaining(normalizedRegion, pageable)
+                .map(r -> new ReportSimpleResponse(
+                        r.getId(),
+                        r.getTitle(),
+                        r.getReporterName(),
+                        r.getStatus(),
+                        r.getReportedAt()
+                ));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ReportSimpleResponse> getReportsByRegion(Pageable pageable) {
+        Admin admin = getCurrentAdmin();
+        String region = firestoreService.getManagerRegion(admin.getRegion());
+        String normalizedRegion = normalizeRegion(region);
+
+        return reportRepository.findAllByAddressContaining(normalizedRegion, pageable)
                 .map(r -> new ReportSimpleResponse(
                         r.getId(),
                         r.getTitle(),
@@ -51,7 +78,9 @@ public class ReportService {
 
         Admin admin = getCurrentAdmin();
         String region = firestoreService.getManagerRegion(admin.getRegion());
-        if (!report.getAddress().contains(region)) {
+        String normalizedRegion = normalizeRegion(region);
+
+        if (!report.getAddress().contains(normalizedRegion)) {
             throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
         }
 
@@ -86,8 +115,7 @@ public class ReportService {
 
         Admin admin = getCurrentAdmin();
         String region = firestoreService.getManagerRegion(admin.getRegion());
-
-        String normalizedRegion = region.replaceAll("^(?:수원)?(\\p{IsHangul}{2,3})경찰서$", "$1구");
+        String normalizedRegion = normalizeRegion(region);
 
         if (!report.getAddress().contains(normalizedRegion)) {
             throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
@@ -116,12 +144,6 @@ public class ReportService {
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
     }
 
-    private Admin getCurrentAdmin() {
-        String loginId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return adminRepository.findByLoginId(loginId)
-                .orElseThrow(() -> TrafficException.from(ErrorCode.ADMIN_NOT_FOUND));
-    }
-
     @Transactional
     public void createReport(ReportCreateRequest request) {
         Report report = Report.builder()
@@ -144,20 +166,5 @@ public class ReportService {
                 "location", saved.getAddress(),
                 "reportContent", saved.getDescription()
         ));
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ReportSimpleResponse> getReportsByRegion(Pageable pageable) {
-        Admin admin = getCurrentAdmin();
-        String region = firestoreService.getManagerRegion(admin.getRegion());
-
-        return reportRepository.findAllByAddressContaining(region, pageable)
-                .map(r -> new ReportSimpleResponse(
-                        r.getId(),
-                        r.getTitle(),
-                        r.getReporterName(),
-                        r.getStatus(),
-                        r.getReportedAt()
-                ));
     }
 }
