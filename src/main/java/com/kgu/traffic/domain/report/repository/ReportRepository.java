@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -33,4 +34,16 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     @Query("SELECT r FROM Report r WHERE r.address LIKE %:region%")
     Page<Report> findAllByAddressContaining(@Param("region") String region, Pageable pageable);
+
+    @Query("""
+    SELECT r FROM Report r
+    WHERE r.address LIKE %:region%
+    AND r.reportedAt BETWEEN :startOfMonth AND :endOfMonth
+""")
+    Page<Report> findAllByAddressContainingAndReportedAtBetween(
+            @Param("region") String region,
+            @Param("startOfMonth") LocalDateTime startOfMonth,
+            @Param("endOfMonth") LocalDateTime endOfMonth,
+            Pageable pageable
+    );
 }
