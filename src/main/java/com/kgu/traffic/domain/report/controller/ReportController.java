@@ -70,4 +70,15 @@ public class ReportController {
         reportService.createReport(request);
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
     }
+
+    @GetMapping("/monthly")
+    @Operation(summary = "이번 달 신고 목록 조회", description = "이번 달에 생성된 페이징된 신고 목록을 반환합니다.")
+    public ApiResponse<ReportSimpleResponse> getMonthlyReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("reportedAt").descending());
+        Page<ReportSimpleResponse> reports = reportService.getMonthlyReportsByRegion(pageable);
+        return new ApiResponse<>(reports);
+    }
 }
