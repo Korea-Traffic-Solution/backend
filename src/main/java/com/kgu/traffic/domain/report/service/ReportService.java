@@ -144,6 +144,26 @@ public class ReportService {
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReportSimpleResponse> getMonthlyReportsByRegion(Pageable pageable) {
+        Admin admin = getCurrentAdmin();
+        String region = firestoreService.getManagerRegion(admin.getRegion());
+        String normalizedRegion = normalizeRegion(region);
+
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+        return reportRepository.findAllByAddressContainingAndReportedAtBetween(
+                normalizedRegion, startOfMonth, endOfMonth, pageable
+        ).map(r -> new ReportSimpleResponse(
+                r.getId(),
+                r.getTitle(),
+                r.getReporterName(),
+                r.getStatus(),
+                r.getReportedAt()
+        ));
+    }
+
     @Transactional
     public void createReport(ReportCreateRequest request) {
         Report report = Report.builder()
