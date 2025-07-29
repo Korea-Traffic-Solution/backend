@@ -34,8 +34,8 @@ public class SwaggerConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("Lifeline Watch REST API") // API의 제목
-                .description("made by 워치를 워치") // API에 대한 설명
+                .title("Korea Traffic Solution REST API") // API의 제목
+                .description("made by 잡았다 킥라니") // API에 대한 설명
                 .contact(
                         new Contact()
                                 .name("BE Github")
