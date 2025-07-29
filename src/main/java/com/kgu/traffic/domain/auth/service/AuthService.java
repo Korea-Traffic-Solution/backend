@@ -1,6 +1,8 @@
 package com.kgu.traffic.domain.auth.service;
 
 import com.google.cloud.firestore.Firestore;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.UserRecord;
 import com.google.firebase.cloud.FirestoreClient;
 import com.kgu.traffic.domain.auth.dto.request.LoginRequest;
 import com.kgu.traffic.domain.auth.dto.request.SignUpRequest;
@@ -48,8 +50,9 @@ public class AuthService {
         managerData.put("region", request.region());
 
         firestore.collection("Manager").document(request.email()).set(managerData);
-    }
 
+        registerToFirebaseAuth(request.email(), request.password());
+    }
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         Admin admin = adminRepository.findByLoginId(request.loginId())
@@ -61,5 +64,18 @@ public class AuthService {
 
         String token = jwtProvider.createToken(admin.getLoginId());
         return new LoginResponse(token, admin.getName(), admin.getRegion());
+    }
+
+    private void registerToFirebaseAuth(String email, String password) {
+        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                .setEmail(email)
+                .setPassword(password);
+
+        try {
+            UserRecord userRecord = FirebaseAuth.getInstance().createUser(createRequest);
+            System.out.println("Firebase Auth 계정 생성됨: " + userRecord.getUid());
+        } catch (Exception e) {
+            System.err.println("Firebase Auth 등록 실패: " + e.getMessage());
+        }
     }
 }
