@@ -1,7 +1,9 @@
 spring:
   config:
     import: optional:file:.env[.properties]
-
+  security:
+    cors:
+      enabled: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USER}
@@ -26,7 +28,6 @@ spring:
         highlight_sql: true
         use_sql_comments: true
 
-  # Swagger 설정
   springdoc:
     api-docs:
       path: /v3/api-docs
@@ -34,7 +35,6 @@ spring:
       path: /swagger-ui.html
       config-url: /v3/api-docs/swagger-config
 
-  # 로그 레벨
   logging:
     level:
       org:
@@ -47,7 +47,6 @@ spring:
           sql.results.internal.ResultsHelper: INFO
       p6spy: debug
 
-  # P6spy 설정
   decorator:
     datasource:
       p6spy:
@@ -57,7 +56,6 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_EXPIRATION}
 
-  # application-firebase.yml 또는 application.yml 내 추가
-  firebase:
-    credentials:
-      path: src/main/resources/firebase/firebase-service-key.json
+firebase:
+  credentials:
+    path: src/main/resources/firebase/firebase-service-key.json
