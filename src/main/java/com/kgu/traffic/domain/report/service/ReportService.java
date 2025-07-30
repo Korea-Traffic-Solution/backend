@@ -13,6 +13,7 @@ import com.kgu.traffic.global.exception.ErrorCode;
 import com.kgu.traffic.global.exception.TrafficException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,14 +30,16 @@ public class ReportService {
     private final AdminRepository adminRepository;
     private final FirestoreService firestoreService;
 
-    private Admin getCurrentAdmin() {
-        String loginId = SecurityContextHolder.getContext().getAuthentication().getName();
-        return adminRepository.findByLoginId(loginId)
+    @Transactional(readOnly = true)
+    protected Admin getCurrentAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Admin admin = (Admin) auth.getPrincipal();
+        return adminRepository.findByLoginId(admin.getLoginId())
                 .orElseThrow(() -> TrafficException.from(ErrorCode.ADMIN_NOT_FOUND));
     }
 
     private String normalizeRegion(String region) {
-        return region.replaceAll("^(?:수원)?(\\p{IsHangul}{2,3})경찰서$", "$1구");
+        return region.replaceAll("^(\\p{IsHangul}+)(\\p{IsHangul}{2,3})경찰서$", "$2구");
     }
 
     @Transactional(readOnly = true)
