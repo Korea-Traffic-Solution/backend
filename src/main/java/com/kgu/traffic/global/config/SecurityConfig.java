@@ -1,6 +1,7 @@
 package com.kgu.traffic.global.config;
 
 import com.kgu.traffic.domain.auth.repository.AdminRepository;
+import com.kgu.traffic.global.filter.FilterExceptionHandler;
 import com.kgu.traffic.global.jwt.JwtAuthenticationFilter;
 import com.kgu.traffic.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class SecurityConfig {
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // JWT 같은 인증정보 포함 요청 허용
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -66,6 +67,10 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
                         .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        new FilterExceptionHandler(),
+                        JwtAuthenticationFilter.class
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider, adminRepository),
