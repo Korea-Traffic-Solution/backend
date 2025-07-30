@@ -34,13 +34,12 @@ public class SwaggerConfig {
 
     private Info apiInfo() {
         return new Info()
-                .title("Korea Traffic Solution REST API") // API의 제목
-                .description("made by 잡았다 킥라니") // API에 대한 설명
+                .title("Korea Traffic Solution REST API")
+                .description("made by 잡았다 킥라니")
                 .contact(
                         new Contact()
                                 .name("BE Github")
-                                .url("https://github.com/2025-Advanced-Capstone-LifelineWatch/backend")) // BE 레포지토리
-                // 주소
-                .version("1.0.0"); // API의 버전
+                                .url("https://github.com/Korea-Traffic-Solution/backend"))
+                .version("1.0.0");
     }
 }
