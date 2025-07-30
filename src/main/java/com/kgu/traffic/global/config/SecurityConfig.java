@@ -41,13 +41,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
+
+        config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
-                "https://*.ngrok-free.app"
+                "http://localhost:5173",
+                "https://1fc1269360bc.ngrok-free.app"
         ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true); // JWT 인증 허용
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
