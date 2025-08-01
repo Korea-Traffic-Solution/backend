@@ -1,7 +1,6 @@
 package com.kgu.traffic.global.config;
 
 import com.kgu.traffic.domain.auth.repository.AdminRepository;
-import com.kgu.traffic.global.filter.FilterExceptionHandler;
 import com.kgu.traffic.global.jwt.JwtAuthenticationFilter;
 import com.kgu.traffic.global.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
@@ -44,10 +43,8 @@ public class SecurityConfig {
 
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
-                "http://localhost:5173",
-                "https://1fc1269360bc.ngrok-free.app"
+                "https://1c12dea640af.ngrok-free.app" // ngrok 갱신마다 바꿔주기
         ));
-
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -65,7 +62,6 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",
                                 "/api/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
