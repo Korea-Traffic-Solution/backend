@@ -50,7 +50,7 @@ public class ReportController {
     @Operation(summary = "신고 승인/반려 처리", description = "신고를 승인 또는 반려 처리합니다.")
     public ApiResponse<Void> processReport(
             @PathVariable Long id,
-            @RequestBody @Valid ReportApproveRequest request // 필드 유효성 검사 활성화
+            @RequestBody @Valid ReportApproveRequest request
     ) {
         reportService.processReport(id, request);
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
