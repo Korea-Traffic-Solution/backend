@@ -35,6 +35,8 @@ public class Report {
 
     private LocalDateTime approvedAt;
 
+    private String imageUrl;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
     private Admin admin;
