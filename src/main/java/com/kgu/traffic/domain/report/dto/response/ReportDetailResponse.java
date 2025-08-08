@@ -20,5 +20,6 @@ public record ReportDetailResponse(
         String aiResult,
         String detectedBrand,
         String location,
-        String reportContent
+        String reportContent,
+        String imageUrl
 ) {}
