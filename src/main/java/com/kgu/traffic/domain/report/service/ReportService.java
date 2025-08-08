@@ -89,6 +89,11 @@ public class ReportService {
 
         Map<String, Object> firestoreData = firestoreService.getReportFirestoreData(id);
 
+        String imageUrlFromFs = (String) firestoreData.get("imageUrl");
+        String finalImageUrl = report.getImageUrl() != null && !report.getImageUrl().isBlank()
+                ? report.getImageUrl()
+                : imageUrlFromFs;
+
         return new ReportDetailResponse(
                 report.getId(),
                 report.getTitle(),
@@ -103,11 +108,11 @@ public class ReportService {
                 report.getFine(),
                 report.getBrand(),
                 report.getApprovedAt(),
-
                 (String) firestoreData.get("aiResult"),
                 (String) firestoreData.get("detectedBrand"),
                 (String) firestoreData.get("location"),
-                (String) firestoreData.get("reportContent")
+                (String) firestoreData.get("reportContent"),
+                finalImageUrl
         );
     }
 
@@ -131,7 +136,8 @@ public class ReportService {
                     "aiResult", "노뚝",
                     "detectedBrand", report.getBrand(),
                     "location", report.getAddress(),
-                    "reportContent", report.getDescription()
+                    "reportContent", report.getDescription(),
+                    "imageUrl", report.getImageUrl()
             ));
         } else {
             report.reject(request.reason(), admin);
@@ -177,6 +183,7 @@ public class ReportService {
                 .address(request.address())
                 .gps(request.gps())
                 .brand(request.brand())
+                .imageUrl(request.imageUrl())
                 .status(PENDING)
                 .reportedAt(LocalDateTime.now())
                 .build();
@@ -184,10 +191,11 @@ public class ReportService {
         Report saved = reportRepository.save(report);
 
         firestoreService.saveReportToFirestore(saved.getId(), Map.of(
-                "aiResult", "분석 결과 예시",
+                "aiResult", "노뚝",
                 "detectedBrand", saved.getBrand(),
                 "location", saved.getAddress(),
-                "reportContent", saved.getDescription()
+                "reportContent", saved.getDescription(),
+                "imageUrl", saved.getImageUrl()
         ));
     }
 }

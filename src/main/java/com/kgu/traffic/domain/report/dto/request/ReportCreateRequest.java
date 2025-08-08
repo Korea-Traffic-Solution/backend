@@ -9,5 +9,6 @@ public record ReportCreateRequest(
         @NotBlank String targetName,
         @NotBlank String address,
         @NotBlank String gps,
-        @NotBlank String brand
+        @NotBlank String brand,
+        String imageUrl
 ) {}
