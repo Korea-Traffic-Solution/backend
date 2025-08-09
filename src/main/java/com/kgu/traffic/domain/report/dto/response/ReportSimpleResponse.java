@@ -4,7 +4,7 @@ import com.kgu.traffic.domain.report.entity.ReportStatus;
 import java.time.LocalDateTime;
 
 public record ReportSimpleResponse(
-        Long id,
+        String id,
         String title,
         String reporterName,
         ReportStatus status,

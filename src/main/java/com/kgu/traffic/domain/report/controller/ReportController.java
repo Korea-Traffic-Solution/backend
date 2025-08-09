@@ -5,13 +5,11 @@ import com.kgu.traffic.domain.report.dto.request.ReportCreateRequest;
 import com.kgu.traffic.domain.report.dto.response.ReportDetailResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportSimpleResponse;
 import com.kgu.traffic.domain.report.dto.response.ReportStatisticsResponse;
-import com.kgu.traffic.domain.report.service.ReportExcelService;
 import com.kgu.traffic.domain.report.service.ReportService;
-import com.kgu.traffic.global.dto.response.ApiResponse;
 import com.kgu.traffic.global.domain.SuccessCode;
+import com.kgu.traffic.global.dto.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,15 +39,14 @@ public class ReportController {
 
     @GetMapping("/{id}")
     @Operation(summary = "신고 상세 조회", description = "특정 신고의 상세 정보를 조회합니다.")
-    public ApiResponse<ReportDetailResponse> getReportDetail(@PathVariable Long id) {
+    public ApiResponse<ReportDetailResponse> getReportDetail(@PathVariable String id) {
         return new ApiResponse<>(reportService.getReportDetail(id));
     }
-
 
     @PatchMapping("/{id}")
     @Operation(summary = "신고 승인/반려 처리", description = "신고를 승인 또는 반려 처리합니다.")
     public ApiResponse<Void> processReport(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody @Valid ReportApproveRequest request
     ) {
         reportService.processReport(id, request);
@@ -64,9 +61,7 @@ public class ReportController {
 
     @PostMapping
     @Operation(summary = "신고 생성", description = "신규 신고를 생성하고 Firestore에 저장합니다.")
-    public ApiResponse<Void> createReport(
-            @RequestBody @Valid ReportCreateRequest request
-    ) {
+    public ApiResponse<Void> createReport(@RequestBody @Valid ReportCreateRequest request) {
         reportService.createReport(request);
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
     }
