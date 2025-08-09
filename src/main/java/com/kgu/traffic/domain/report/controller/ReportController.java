@@ -38,7 +38,7 @@ public class ReportController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "신고 상세 조회", description = "특정 신고의 상세 정보를 조회합니다.")
+    @Operation(summary = "신고 상세 조회(Conclusion 원본)", description = "Conclusion 컬렉션 문서를 변환 없이 그대로 반환합니다.")
     public ApiResponse<ReportDetailResponse> getReportDetail(@PathVariable String id) {
         return new ApiResponse<>(reportService.getReportDetail(id));
     }
@@ -53,19 +53,6 @@ public class ReportController {
         return new ApiResponse<>(SuccessCode.REQUEST_OK);
     }
 
-    @GetMapping("/statistics")
-    @Operation(summary = "신고 통계 조회", description = "전체 신고 수, 월간 신고 수, 승인/반려 수를 반환합니다.")
-    public ApiResponse<ReportStatisticsResponse> getReportStatistics() {
-        return new ApiResponse<>(reportService.getReportStatistics());
-    }
-
-    @PostMapping
-    @Operation(summary = "신고 생성", description = "신규 신고를 생성하고 Firestore에 저장합니다.")
-    public ApiResponse<Void> createReport(@RequestBody @Valid ReportCreateRequest request) {
-        reportService.createReport(request);
-        return new ApiResponse<>(SuccessCode.REQUEST_OK);
-    }
-
     @GetMapping("/monthly")
     @Operation(summary = "이번 달 신고 목록 조회", description = "이번 달에 생성된 페이징된 신고 목록을 반환합니다.")
     public ApiResponse<ReportSimpleResponse> getMonthlyReports(
@@ -73,7 +60,7 @@ public class ReportController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("reportedAt").descending());
-        Page<ReportSimpleResponse> reports = reportService.getMonthlyReportsByRegion(pageable);
+        Page<ReportSimpleResponse> reports = reportService.getReports(pageable);
         return new ApiResponse<>(reports);
     }
 }
