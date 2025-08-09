@@ -80,12 +80,11 @@ public class ReportService {
     @Transactional(readOnly = true)
     public ReportDetailResponse getReportDetail(String docId) {
         Map<String, Object> fs = firestoreService.getConclusionByDocId(docId);
-
         Report report = reportRepository.findByFirestoreDocId(docId).orElse(Report.builder().build());
 
         String title = (String) fs.getOrDefault("title", report.getTitle());
         String description = (String) fs.getOrDefault("description", report.getDescription());
-        String reporterName = (String) fs.getOrDefault("userId", report.getReporterName()); // Firestore 필드명 'userId'
+        String reporterName = (String) fs.getOrDefault("userId", report.getReporterName());
         String targetName = (String) fs.getOrDefault("targetName", report.getTargetName());
 
         com.google.cloud.Timestamp ts = (com.google.cloud.Timestamp) fs.get("date");

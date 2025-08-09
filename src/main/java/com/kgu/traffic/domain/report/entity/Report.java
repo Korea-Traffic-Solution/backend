@@ -36,7 +36,7 @@ public class Report {
     private LocalDateTime approvedAt;
 
     private String imageUrl;
-
+    
     @Column(name = "firestore_doc_id")
     private String firestoreDocId;
 
