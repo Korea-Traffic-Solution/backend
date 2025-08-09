@@ -20,8 +20,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static com.kgu.traffic.domain.report.entity.ReportStatus.PENDING;
@@ -122,12 +126,41 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public ReportStatisticsResponse getReportStatistics() {
-        long total = reportRepository.countAll();
-        long monthly = reportRepository.countThisMonth();
-        long approved = reportRepository.countApproved();
-        long rejected = reportRepository.countRejected();
+        var admin = getCurrentAdmin();
+        var region = firestoreService.getManagerRegion(admin.getRegion());
+        var normalizedRegion = normalizeRegion(region);
+
+        var conclusions = firestoreService.getAllConclusions();
+
+        ZoneId KST = ZoneId.of("Asia/Seoul");
+        LocalDateTime now = LocalDateTime.now(KST);
+        LocalDateTime startOfMonth = now.withDayOfMonth(1)
+                .withHour(0).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+
+        long total = 0, monthly = 0, approved = 0, rejected = 0;
+
+        for (var doc : conclusions) {
+            String docRegion = doc.getString("region");
+            if (docRegion == null || !docRegion.contains(normalizedRegion)) continue;
+
+            total++;
+
+            LocalDateTime reportedAt = parseToLocalDateTime(doc.get("date"));
+            if (reportedAt != null &&
+                    !reportedAt.isBefore(startOfMonth) &&
+                    !reportedAt.isAfter(endOfMonth)) {
+                monthly++;
+            }
+
+            String result = doc.getString("result");
+            if ("승인".equals(result)) approved++;
+            else if ("반려".equals(result)) rejected++;
+        }
+
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
     }
+
 
     @Transactional
     public void createReport(ReportCreateRequest request) {
@@ -144,5 +177,39 @@ public class ReportService {
                 .reportedAt(LocalDateTime.now())
                 .build();
         reportRepository.save(report);
+    }
+
+    private LocalDateTime parseToLocalDateTime(Object dateObj) {
+        if (dateObj == null) return null;
+        try {
+            if (dateObj instanceof com.google.cloud.Timestamp ts) {
+                return ts.toSqlTimestamp().toLocalDateTime();
+            } else if (dateObj instanceof java.util.Date d) {
+                return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            } else if (dateObj instanceof String s) {
+                String cleaned = s.replace("UTC+9", "").replace("KST", "").trim();
+                Locale ko = Locale.KOREAN;
+                String[] patterns = {
+                        "yyyy년 M월 d일 a h시 m분 s초",
+                        "yyyy년 M월 d일 a h시 m분",
+                        "yyyy-MM-dd HH:mm:ss",
+                        "yyyy-MM-dd'T'HH:mm:ssXXX",
+                        "yyyy-MM-dd'T'HH:mm:ss.SSSXXX"
+                };
+                for (String p : patterns) {
+                    try {
+                        return LocalDateTime.parse(cleaned, DateTimeFormatter.ofPattern(p, ko));
+                    } catch (Exception ignore) {}
+                }
+                try { // ISO-8601 with offset
+                    return java.time.OffsetDateTime.parse(s).toLocalDateTime();
+                } catch (Exception ignore) {}
+                try {
+                    long millis = Long.parseLong(s.trim());
+                    return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime();
+                } catch (Exception ignore) {}
+            }
+        } catch (Exception ignore) {}
+        return null;
     }
 }

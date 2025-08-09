@@ -63,4 +63,17 @@ public class ReportController {
         Page<ReportSimpleResponse> reports = reportService.getReports(pageable);
         return new ApiResponse<>(reports);
     }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "신고 통계 조회", description = "전체 신고 수, 월간 신고 수, 승인/반려 수를 반환합니다.")
+    public ApiResponse<ReportStatisticsResponse> getReportStatistics() {
+        return new ApiResponse<>(reportService.getReportStatistics());
+    }
+
+    @PostMapping
+    @Operation(summary = "신고 생성", description = "신규 신고를 생성하고 Firestore에 저장합니다.")
+    public ApiResponse<Void> createReport(@RequestBody @Valid ReportCreateRequest request) {
+        reportService.createReport(request);
+        return new ApiResponse<>(SuccessCode.REQUEST_OK);
+    }
 }
