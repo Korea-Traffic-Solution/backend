@@ -11,9 +11,13 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
+
+    Optional<Report> findByFirestoreDocId(String firestoreDocId);
+
     @Query("SELECT r FROM Report r WHERE r.status = 'APPROVED' AND r.brand = :brand AND DATE(r.approvedAt) = :date")
     List<Report> findApprovedByBrandAndDate(@Param("brand") String brand, @Param("date") LocalDate date);
 
