@@ -37,12 +37,19 @@ public class Report {
 
     private String imageUrl;
 
+    @Column(name = "firestore_doc_id")
+    private String firestoreDocId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
     private Admin admin;
 
     public void setApprovedAt(LocalDateTime approvedAt) {
         this.approvedAt = approvedAt;
+    }
+
+    public void linkFirestoreDoc(String docId) {
+        this.firestoreDocId = docId;
     }
 
     public void approve(String reason, Integer fine, Admin admin) {
