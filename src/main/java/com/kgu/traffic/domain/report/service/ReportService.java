@@ -20,7 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +32,7 @@ public class ReportService {
     private final ReportRepository reportRepository;
     private final AdminRepository adminRepository;
     private final FirestoreService firestoreService;
-    private final SignedUrlService signedUrlService;
 
-    @Transactional(readOnly = true)
     protected Admin getCurrentAdmin() {
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         var admin = (Admin) auth.getPrincipal();
@@ -49,29 +46,33 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public Page<ReportSimpleResponse> getReports(Pageable pageable) {
+        Admin admin = getCurrentAdmin();
+        String region = firestoreService.getManagerRegion(admin.getRegion());
+        String normalizedRegion = normalizeRegion(region);
+
         List<QueryDocumentSnapshot> conclusions = firestoreService.getAllConclusions();
 
         List<ReportSimpleResponse> reportList = conclusions.stream()
+                .filter(doc -> {
+                    String docRegion = doc.getString("region");
+                    return docRegion != null && docRegion.contains(normalizedRegion);
+                })
                 .map(doc -> {
-                    String title = doc.contains("title") ? doc.getString("title") : "제목 없음";
-                    String reporterName = doc.contains("reporterId") ? doc.getString("reporterId") : "익명";
-                    com.google.cloud.Timestamp ts = doc.getTimestamp("date");
-                    LocalDateTime reportedAt = (ts != null)
-                            ? ts.toSqlTimestamp().toLocalDateTime()
-                            : LocalDateTime.now();
+                    String title = doc.contains("title") ? doc.getString("title")
+                            : String.valueOf(doc.get("violation"));
+                    String reporterName = doc.contains("userId") ? doc.getString("userId") : "익명";
+                    LocalDateTime reportedAt = LocalDateTime.now(); // Conclusion 원본엔 date가 문자열이므로 여기선 현재시간 대체
                     ReportStatus status = ReportStatus.PENDING;
                     String id = doc.getId();
-
                     return new ReportSimpleResponse(id, title, reporterName, status, reportedAt);
                 })
                 .sorted((r1, r2) -> r2.reportedAt().compareTo(r1.reportedAt()))
                 .toList();
 
         int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), reportList.size());
-        List<ReportSimpleResponse> pageContent = (start > reportList.size())
-                ? List.of()
-                : reportList.subList(start, end);
+        int end = Math.min(start + pageable.getPageSize(), reportList.size());
+        List<ReportSimpleResponse> pageContent = (start >= reportList.size())
+                ? List.of() : reportList.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, reportList.size());
     }
@@ -80,55 +81,30 @@ public class ReportService {
     @Transactional(readOnly = true)
     public ReportDetailResponse getReportDetail(String docId) {
         Map<String, Object> fs = firestoreService.getConclusionByDocId(docId);
-        Report report = reportRepository.findByFirestoreDocId(docId).orElse(Report.builder().build());
 
-        String title = (String) fs.getOrDefault("title", report.getTitle());
-        String description = (String) fs.getOrDefault("description", report.getDescription());
-        String reporterName = (String) fs.getOrDefault("userId", report.getReporterName());
-        String targetName = (String) fs.getOrDefault("targetName", report.getTargetName());
-
-        com.google.cloud.Timestamp ts = (com.google.cloud.Timestamp) fs.get("date");
-        LocalDateTime reportedAt = (ts != null) ? ts.toSqlTimestamp().toLocalDateTime() : report.getReportedAt();
-
-        String address = (String) fs.getOrDefault("region", report.getAddress());
-        String gps = (String) fs.getOrDefault("gpsInfo", report.getGps());
-        String brand = (String) fs.getOrDefault("detectedBrand", report.getBrand());
-        List<String> aiConclusion = (List<String>) fs.getOrDefault("aiConclusion", List.of());
-        String reportContent = (String) fs.getOrDefault("violation", report.getDescription());
-
-        ReportStatus status;
-        String result = (String) fs.get("result");
-        if ("미확인".equals(result)) {
-            status = ReportStatus.PENDING;
-        } else {
-            status = report.getStatus();
+        List<String> aiConclusion = List.of();
+        Object aiObj = fs.get("aiConclusion");
+        if (aiObj instanceof List<?> list) {
+            aiConclusion = list.stream().map(String::valueOf).toList();
         }
 
-        String candidateUrl = (String) fs.getOrDefault("imageUrl", (String) fs.get("reportImgUrl"));
-        String signedImgUrl = null;
-        if (candidateUrl != null && !candidateUrl.isBlank()) {
-            signedImgUrl = signedUrlService.toSignedUrl(candidateUrl, Duration.ofMinutes(10));
-        }
+        Double confidence = null;
+        Object conf = fs.get("confidence");
+        if (conf instanceof Number n) confidence = n.doubleValue();
 
         return new ReportDetailResponse(
                 docId,
-                title,
-                description,
-                reporterName,
-                targetName,
-                status,
-                reportedAt,
-                address,
-                gps,
-                report.getReason(),
-                report.getFine(),
-                brand,
-                report.getApprovedAt(),
                 aiConclusion,
-                brand,
-                address,
-                reportContent,
-                signedImgUrl
+                confidence,
+                fs.get("date") != null ? String.valueOf(fs.get("date")) : null,
+                (String) fs.getOrDefault("detectedBrand", null),
+                (String) fs.getOrDefault("gpsInfo", null),
+                (String) fs.getOrDefault("imageUrl", null),
+                (String) fs.getOrDefault("region", null),
+                (String) fs.getOrDefault("reportImgUrl", null),
+                (String) fs.getOrDefault("result", null),
+                (String) fs.getOrDefault("userId", null),
+                (String) fs.getOrDefault("violation", null)
         );
     }
 
@@ -137,24 +113,10 @@ public class ReportService {
         var report = reportRepository.findByFirestoreDocId(docId)
                 .orElseThrow(() -> TrafficException.from(ErrorCode.REPORT_NOT_FOUND));
 
-        var admin = getCurrentAdmin();
-        var region = firestoreService.getManagerRegion(admin.getRegion());
-        var normalizedRegion = normalizeRegion(region);
-
-        if (report.getAddress() == null || !report.getAddress().contains(normalizedRegion)) {
-            throw TrafficException.from(ErrorCode.FORBIDDEN_ACCESS);
-        }
-
         if (request.approve()) {
-            report.approve(request.reason(), request.fine(), admin);
-            firestoreService.saveReportToReports(report.getId(), Map.of(
-                    "detectedBrand", report.getBrand(),
-                    "region", report.getAddress(),
-                    "violation", report.getDescription(),
-                    "reportImgUrl", report.getImageUrl()
-            ));
+            report.approve(request.reason(), request.fine(), getCurrentAdmin());
         } else {
-            report.reject(request.reason(), admin);
+            report.reject(request.reason(), getCurrentAdmin());
         }
     }
 
@@ -165,27 +127,6 @@ public class ReportService {
         long approved = reportRepository.countApproved();
         long rejected = reportRepository.countRejected();
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ReportSimpleResponse> getMonthlyReportsByRegion(Pageable pageable) {
-        var admin = getCurrentAdmin();
-        var region = firestoreService.getManagerRegion(admin.getRegion());
-        var normalizedRegion = normalizeRegion(region);
-
-        var startOfMonth = LocalDateTime.now().withDayOfMonth(1)
-                .withHour(0).withMinute(0).withSecond(0).withNano(0);
-        var endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
-
-        return reportRepository.findAllByAddressContainingAndReportedAtBetween(
-                normalizedRegion, startOfMonth, endOfMonth, pageable
-        ).map(r -> new ReportSimpleResponse(
-                r.getId().toString(),
-                r.getTitle(),
-                r.getReporterName(),
-                r.getStatus(),
-                r.getReportedAt()
-        ));
     }
 
     @Transactional
@@ -202,14 +143,6 @@ public class ReportService {
                 .status(PENDING)
                 .reportedAt(LocalDateTime.now())
                 .build();
-
-        var saved = reportRepository.save(report);
-
-        firestoreService.saveReportToReports(saved.getId(), Map.of(
-                "detectedBrand", saved.getBrand(),
-                "region", saved.getAddress(),
-                "violation", saved.getDescription(),
-                "reportImgUrl", saved.getImageUrl()
-        ));
+        reportRepository.save(report);
     }
 }
