@@ -20,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -27,6 +29,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.kgu.traffic.domain.report.entity.ReportStatus.PENDING;
 
@@ -89,28 +93,24 @@ public class ReportService {
     public ReportDetailResponse getReportDetail(String docId) {
         Map<String, Object> fs = firestoreService.getConclusionByDocId(docId);
 
-        // aiConclusion 배열
         List<String> aiConclusion = List.of();
         Object aiObj = fs.get("aiConclusion");
         if (aiObj instanceof List<?> list) {
             aiConclusion = list.stream().map(String::valueOf).toList();
         }
 
-        // confidence
         Double confidence = null;
         Object conf = fs.get("confidence");
         if (conf instanceof Number n) confidence = n.doubleValue();
 
-        // 🔧 이미지 URL 토큰 보정
-        String imageUrlRaw = (String) fs.get("imageUrl");         // 종종 token 포함
-        String reportImgUrlRaw = (String) fs.get("reportImgUrl"); // 종종 token 미포함
+        String imageUrlRaw = (String) fs.get("imageUrl");
+        String reportImgUrlRaw = (String) fs.get("reportImgUrl");
 
-        // token 소스 우선순위: imageUrl → reportImgUrl
         String token = extractTokenFromUrl(imageUrlRaw);
         if (token == null) token = extractTokenFromUrl(reportImgUrlRaw);
 
-        String fixedImageUrl = ensureToken(imageUrlRaw, token);
-        String fixedReportImgUrl = ensureToken(reportImgUrlRaw, token);
+        String fixedImageUrl = toFirebaseDownloadUrl(imageUrlRaw, token);
+        String fixedReportImgUrl = toFirebaseDownloadUrl(reportImgUrlRaw, token);
 
         return new ReportDetailResponse(
                 docId,
@@ -119,9 +119,9 @@ public class ReportService {
                 fs.get("date") != null ? String.valueOf(fs.get("date")) : null,
                 (String) fs.getOrDefault("detectedBrand", null),
                 (String) fs.getOrDefault("gpsInfo", null),
-                fixedImageUrl,                                   // ✅ imageUrl(토큰 보정)
+                fixedImageUrl,
                 (String) fs.getOrDefault("region", null),
-                fixedReportImgUrl,                               // ✅ reportImgUrl(토큰 보정)
+                fixedReportImgUrl,
                 (String) fs.getOrDefault("result", null),
                 (String) fs.getOrDefault("userId", null),
                 (String) fs.getOrDefault("violation", null)
@@ -194,7 +194,6 @@ public class ReportService {
         reportRepository.save(report);
     }
 
-    /* ====== utils ====== */
 
     private LocalDateTime parseToLocalDateTime(Object dateObj) {
         if (dateObj == null) return null;
@@ -239,13 +238,33 @@ public class ReportService {
         return (end > start) ? url.substring(start, end) : url.substring(start);
     }
 
-    private String ensureToken(String url, String token) {
-        if (url == null || token == null || token.isBlank()) return url;
-        if (url.contains("firebasestorage.googleapis.com")
-                && url.contains("alt=media")
-                && !url.contains("token=")) {
-            return url + (url.contains("?") ? "&" : "?") + "token=" + token;
+    private String toFirebaseDownloadUrl(String url, String token) {
+        if (url == null || url.isBlank()) return url;
+
+        // 이미 firebasestorage 형식이면 alt=media / token만 보정
+        if (url.contains("firebasestorage.googleapis.com")) {
+            String u = url;
+            if (!u.contains("alt=media")) {
+                u += (u.contains("?") ? "&" : "?") + "alt=media";
+            }
+            if (token != null && !token.isBlank() && !u.contains("token=")) {
+                u += (u.contains("?") ? "&" : "?") + "token=" + token;
+            }
+            return u;
         }
+
+        Matcher m = Pattern.compile("^https?://storage\\.googleapis\\.com/([^/]+)/(.+)$").matcher(url);
+        if (m.find()) {
+            String bucket = m.group(1);
+            String objectPath = m.group(2);
+            String encoded = URLEncoder.encode(objectPath, StandardCharsets.UTF_8).replace("+", "%20");
+            String base = "https://firebasestorage.googleapis.com/v0/b/" + bucket + "/o/" + encoded + "?alt=media";
+            if (token != null && !token.isBlank()) {
+                return base + "&token=" + token;
+            }
+            return base;
+        }
+
         return url;
     }
 }
