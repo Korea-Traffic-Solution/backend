@@ -65,7 +65,10 @@ public class ReportService {
                     String title = doc.contains("title") ? doc.getString("title")
                             : String.valueOf(doc.get("violation"));
                     String reporterName = doc.contains("userId") ? doc.getString("userId") : "익명";
-                    LocalDateTime reportedAt = LocalDateTime.now(); // Conclusion 원본엔 date가 문자열이므로 여기선 현재시간 대체
+                    LocalDateTime reportedAt = parseToLocalDateTime(doc.get("date"));
+                    if (reportedAt == null) {
+                        reportedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+                    }
                     ReportStatus status = ReportStatus.PENDING;
                     String id = doc.getId();
                     return new ReportSimpleResponse(id, title, reporterName, status, reportedAt);
@@ -86,15 +89,28 @@ public class ReportService {
     public ReportDetailResponse getReportDetail(String docId) {
         Map<String, Object> fs = firestoreService.getConclusionByDocId(docId);
 
+        // aiConclusion 배열
         List<String> aiConclusion = List.of();
         Object aiObj = fs.get("aiConclusion");
         if (aiObj instanceof List<?> list) {
             aiConclusion = list.stream().map(String::valueOf).toList();
         }
 
+        // confidence
         Double confidence = null;
         Object conf = fs.get("confidence");
         if (conf instanceof Number n) confidence = n.doubleValue();
+
+        // 🔧 이미지 URL 토큰 보정
+        String imageUrlRaw = (String) fs.get("imageUrl");         // 종종 token 포함
+        String reportImgUrlRaw = (String) fs.get("reportImgUrl"); // 종종 token 미포함
+
+        // token 소스 우선순위: imageUrl → reportImgUrl
+        String token = extractTokenFromUrl(imageUrlRaw);
+        if (token == null) token = extractTokenFromUrl(reportImgUrlRaw);
+
+        String fixedImageUrl = ensureToken(imageUrlRaw, token);
+        String fixedReportImgUrl = ensureToken(reportImgUrlRaw, token);
 
         return new ReportDetailResponse(
                 docId,
@@ -103,9 +119,9 @@ public class ReportService {
                 fs.get("date") != null ? String.valueOf(fs.get("date")) : null,
                 (String) fs.getOrDefault("detectedBrand", null),
                 (String) fs.getOrDefault("gpsInfo", null),
-                (String) fs.getOrDefault("imageUrl", null),
+                fixedImageUrl,                                   // ✅ imageUrl(토큰 보정)
                 (String) fs.getOrDefault("region", null),
-                (String) fs.getOrDefault("reportImgUrl", null),
+                fixedReportImgUrl,                               // ✅ reportImgUrl(토큰 보정)
                 (String) fs.getOrDefault("result", null),
                 (String) fs.getOrDefault("userId", null),
                 (String) fs.getOrDefault("violation", null)
@@ -161,7 +177,6 @@ public class ReportService {
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
     }
 
-
     @Transactional
     public void createReport(ReportCreateRequest request) {
         var report = Report.builder()
@@ -178,6 +193,8 @@ public class ReportService {
                 .build();
         reportRepository.save(report);
     }
+
+    /* ====== utils ====== */
 
     private LocalDateTime parseToLocalDateTime(Object dateObj) {
         if (dateObj == null) return null;
@@ -204,12 +221,31 @@ public class ReportService {
                 try { // ISO-8601 with offset
                     return java.time.OffsetDateTime.parse(s).toLocalDateTime();
                 } catch (Exception ignore) {}
-                try {
+                try { // epoch millis
                     long millis = Long.parseLong(s.trim());
                     return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime();
                 } catch (Exception ignore) {}
             }
         } catch (Exception ignore) {}
         return null;
+    }
+
+    private String extractTokenFromUrl(String url) {
+        if (url == null) return null;
+        int idx = url.indexOf("token=");
+        if (idx < 0) return null;
+        int start = idx + "token=".length();
+        int end = url.indexOf('&', start);
+        return (end > start) ? url.substring(start, end) : url.substring(start);
+    }
+
+    private String ensureToken(String url, String token) {
+        if (url == null || token == null || token.isBlank()) return url;
+        if (url.contains("firebasestorage.googleapis.com")
+                && url.contains("alt=media")
+                && !url.contains("token=")) {
+            return url + (url.contains("?") ? "&" : "?") + "token=" + token;
+        }
+        return url;
     }
 }
