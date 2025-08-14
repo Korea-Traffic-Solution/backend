@@ -130,14 +130,54 @@ public class ReportService {
 
     @Transactional
     public void processReport(String docId, ReportApproveRequest request) {
-        var report = reportRepository.findByFirestoreDocId(docId)
-                .orElseThrow(() -> TrafficException.from(ErrorCode.REPORT_NOT_FOUND));
+        Report report = reportRepository.findByFirestoreDocId(docId)
+                .orElseGet(() -> upsertReportFromFirestore(docId));
 
         if (request.approve()) {
             report.approve(request.reason(), request.fine(), getCurrentAdmin());
         } else {
             report.reject(request.reason(), getCurrentAdmin());
         }
+    }
+
+    private Report upsertReportFromFirestore(String docId) {
+        Map<String, Object> fs = firestoreService.getConclusionByDocId(docId);
+        if (fs == null || fs.isEmpty()) {
+            throw TrafficException.from(ErrorCode.REPORT_NOT_FOUND);
+        }
+
+        String title = fs.containsKey("title") ? String.valueOf(fs.get("title"))
+                : String.valueOf(fs.getOrDefault("violation", "제목 없음"));
+        String reporterName = String.valueOf(fs.getOrDefault("userId", "익명"));
+        String targetName = null;
+        String address = String.valueOf(fs.getOrDefault("region", ""));
+        String gps = String.valueOf(fs.getOrDefault("gpsInfo", ""));
+        String brand = String.valueOf(fs.getOrDefault("detectedBrand", ""));
+        String imageUrl = (String) fs.getOrDefault("imageUrl", fs.getOrDefault("reportImgUrl", null));
+
+        LocalDateTime reportedAt = parseToLocalDateTime(fs.get("date"));
+        if (reportedAt == null) {
+            reportedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+        }
+
+        Report newReport = Report.builder()
+                .title(title)
+                .description(null)
+                .reporterName(reporterName)
+                .targetName(targetName)
+                .status(ReportStatus.PENDING)
+                .reportedAt(reportedAt)
+                .address(address)
+                .gps(gps)
+                .reason(null)
+                .fine(0)
+                .brand(brand)
+                .approvedAt(null)
+                .imageUrl(imageUrl)
+                .build();
+        newReport.linkFirestoreDoc(docId);
+
+        return reportRepository.save(newReport);
     }
 
     @Transactional(readOnly = true)
