@@ -60,21 +60,31 @@ public class ReportService {
 
         List<QueryDocumentSnapshot> conclusions = firestoreService.getAllConclusions();
 
-        List<ReportSimpleResponse> reportList = conclusions.stream()
+        List<QueryDocumentSnapshot> filtered = conclusions.stream()
                 .filter(doc -> {
                     String docRegion = doc.getString("region");
                     return docRegion != null && docRegion.contains(normalizedRegion);
                 })
+                .toList();
+
+        List<String> ids = filtered.stream().map(QueryDocumentSnapshot::getId).toList();
+        Map<String, ReportStatus> statusMap = reportRepository.findByFirestoreDocIdIn(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Report::getFirestoreDocId,
+                        Report::getStatus
+                ));
+
+        List<ReportSimpleResponse> reportList = filtered.stream()
                 .map(doc -> {
                     String title = doc.contains("title") ? doc.getString("title")
                             : String.valueOf(doc.get("violation"));
                     String reporterName = doc.contains("userId") ? doc.getString("userId") : "익명";
                     LocalDateTime reportedAt = parseToLocalDateTime(doc.get("date"));
-                    if (reportedAt == null) {
-                        reportedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-                    }
-                    ReportStatus status = ReportStatus.PENDING;
+                    if (reportedAt == null) reportedAt = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
                     String id = doc.getId();
+
+                    ReportStatus status = statusMap.getOrDefault(id, ReportStatus.PENDING);
+
                     return new ReportSimpleResponse(id, title, reporterName, status, reportedAt);
                 })
                 .sorted((r1, r2) -> r2.reportedAt().compareTo(r1.reportedAt()))
@@ -188,30 +198,41 @@ public class ReportService {
 
         var conclusions = firestoreService.getAllConclusions();
 
-        ZoneId KST = ZoneId.of("Asia/Seoul");
-        LocalDateTime now = LocalDateTime.now(KST);
-        LocalDateTime startOfMonth = now.withDayOfMonth(1)
-                .withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+        var filtered = conclusions.stream()
+                .filter(doc -> {
+                    String docRegion = doc.getString("region");
+                    return docRegion != null && docRegion.contains(normalizedRegion);
+                })
+                .toList();
+
+        var ids = filtered.stream().map(com.google.cloud.firestore.QueryDocumentSnapshot::getId).toList();
+        var statusMap = reportRepository.findByFirestoreDocIdIn(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Report::getFirestoreDocId,
+                        Report::getStatus
+                ));
+
+        java.time.ZoneId KST = java.time.ZoneId.of("Asia/Seoul");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(KST);
+        var startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        var endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
 
         long total = 0, monthly = 0, approved = 0, rejected = 0;
 
-        for (var doc : conclusions) {
-            String docRegion = doc.getString("region");
-            if (docRegion == null || !docRegion.contains(normalizedRegion)) continue;
-
+        for (var doc : filtered) {
             total++;
 
-            LocalDateTime reportedAt = parseToLocalDateTime(doc.get("date"));
+            var reportedAt = parseToLocalDateTime(doc.get("date"));
             if (reportedAt != null &&
                     !reportedAt.isBefore(startOfMonth) &&
                     !reportedAt.isAfter(endOfMonth)) {
                 monthly++;
             }
 
-            String result = doc.getString("result");
-            if ("승인".equals(result)) approved++;
-            else if ("반려".equals(result)) rejected++;
+            var id = doc.getId();
+            var st = statusMap.getOrDefault(id, ReportStatus.PENDING);
+            if (st == ReportStatus.APPROVED) approved++;
+            else if (st == ReportStatus.REJECTED) rejected++;
         }
 
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
@@ -260,7 +281,7 @@ public class ReportService {
                 try { // ISO-8601 with offset
                     return java.time.OffsetDateTime.parse(s).toLocalDateTime();
                 } catch (Exception ignore) {}
-                try { // epoch millis
+                try {
                     long millis = Long.parseLong(s.trim());
                     return Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDateTime();
                 } catch (Exception ignore) {}

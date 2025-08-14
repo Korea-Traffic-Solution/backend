@@ -1,3 +1,4 @@
+// src/main/java/com/kgu/traffic/domain/report/repository/ReportRepository.java
 package com.kgu.traffic.domain.report.repository;
 
 import com.kgu.traffic.domain.report.entity.Report;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +19,9 @@ import java.util.Optional;
 public interface ReportRepository extends JpaRepository<Report, Long> {
 
     Optional<Report> findByFirestoreDocId(String firestoreDocId);
+
+    // ✅ Firestore 문서 ID들로 한 번에 조회
+    List<Report> findByFirestoreDocIdIn(Collection<String> firestoreDocIds);
 
     @Query("SELECT r FROM Report r WHERE r.status = 'APPROVED' AND r.brand = :brand AND DATE(r.approvedAt) = :date")
     List<Report> findApprovedByBrandAndDate(@Param("brand") String brand, @Param("date") LocalDate date);
@@ -42,8 +47,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @Query("""
     SELECT r FROM Report r
     WHERE r.address LIKE %:region%
-    AND r.reportedAt BETWEEN :startOfMonth AND :endOfMonth
-""")
+      AND r.reportedAt BETWEEN :startOfMonth AND :endOfMonth
+    """)
     Page<Report> findAllByAddressContainingAndReportedAtBetween(
             @Param("region") String region,
             @Param("startOfMonth") LocalDateTime startOfMonth,
