@@ -198,30 +198,41 @@ public class ReportService {
 
         var conclusions = firestoreService.getAllConclusions();
 
-        ZoneId KST = ZoneId.of("Asia/Seoul");
-        LocalDateTime now = LocalDateTime.now(KST);
-        LocalDateTime startOfMonth = now.withDayOfMonth(1)
-                .withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
+        var filtered = conclusions.stream()
+                .filter(doc -> {
+                    String docRegion = doc.getString("region");
+                    return docRegion != null && docRegion.contains(normalizedRegion);
+                })
+                .toList();
+
+        var ids = filtered.stream().map(com.google.cloud.firestore.QueryDocumentSnapshot::getId).toList();
+        var statusMap = reportRepository.findByFirestoreDocIdIn(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Report::getFirestoreDocId,
+                        Report::getStatus
+                ));
+
+        java.time.ZoneId KST = java.time.ZoneId.of("Asia/Seoul");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(KST);
+        var startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        var endOfMonth = startOfMonth.plusMonths(1).minusNanos(1);
 
         long total = 0, monthly = 0, approved = 0, rejected = 0;
 
-        for (var doc : conclusions) {
-            String docRegion = doc.getString("region");
-            if (docRegion == null || !docRegion.contains(normalizedRegion)) continue;
-
+        for (var doc : filtered) {
             total++;
 
-            LocalDateTime reportedAt = parseToLocalDateTime(doc.get("date"));
+            var reportedAt = parseToLocalDateTime(doc.get("date"));
             if (reportedAt != null &&
                     !reportedAt.isBefore(startOfMonth) &&
                     !reportedAt.isAfter(endOfMonth)) {
                 monthly++;
             }
 
-            String result = doc.getString("result");
-            if ("승인".equals(result)) approved++;
-            else if ("반려".equals(result)) rejected++;
+            var id = doc.getId();
+            var st = statusMap.getOrDefault(id, ReportStatus.PENDING);
+            if (st == ReportStatus.APPROVED) approved++;
+            else if (st == ReportStatus.REJECTED) rejected++;
         }
 
         return new ReportStatisticsResponse(total, monthly, approved, rejected);
