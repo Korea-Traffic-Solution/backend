@@ -1,3 +1,10 @@
+## 👤 My Contributions (개인 기여 요약)
+
+### Korea Traffic Solution (Backend)
+- 신고 관리: 승인/반려/조회 API 및 관할지구(region) 필터링 로직 구현
+- Excel 다운로드: Apache POI 기반 브랜드·날짜별 승인 신고 내역 리포트 생성, UTF-8 BOM 적용으로 한글 인코딩 문제 해결
+- 관리자 기능: JWT 인증 기반 접근 제어 및 권한 처리
+
 ## 📠 Convention
 
 ### 🤝 Branch Naming Convention
